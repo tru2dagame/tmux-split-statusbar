@@ -2,15 +2,65 @@
 
 This is an plugin that split stats bar into 2 parts (lines)
 
-  `window part` - First line
+  `status-left / status-right` part - First line
 
-  `status-left / status-right` part - Second line
+  `window part` - Second line (the `window-second-line` branch)
 
 This plugin provides function to hide status-left / status-right as well, if you want to focus, pure silence environment.
 
 This plugin is compatible with Tmux plugin manager([TPM](https://github.com/tmux-plugins/tpm))
 
 This pllugin should work with any themes well.
+
+## Refresh cost and Oh my tmux! integration
+
+Apply this plugin after the theme has finished setting its status formats.
+It configures the layout when loaded or explicitly toggled; it does not need
+a timer, a background polling process, or a command in the status text.
+Unchanged option values are skipped, so repeated applications of the same
+layout do not trigger tmux's option-change redraws. Format conversion uses
+Bash substitutions instead of spawning four `sed` processes.
+
+If an older Oh my tmux! configuration contains `#{split_statusbar_on}` in
+`tmux_conf_theme_status_left`, remove that placeholder when switching to this
+plugin. The framework converts it to a `#(...)` job that calls the **separate
+function in `.tmux.conf.local`**, not this plugin's function. Updating this
+repository alone does not change that copy. Calling a layout-changing function
+from status rendering repeatedly writes global options and redraws clients.
+
+Keep the two-line layout by loading this plugin once **after** theme setup,
+including any asynchronous theme setup. For this branch, use:
+
+```tmux
+set -g @plugin 'tru2dagame/tmux-split-statusbar#window-second-line'
+set -g @split-statusbar-mode 'on'
+```
+
+For a manual checkout, run its actual entrypoint after the theme is ready:
+
+```tmux
+run-shell '/path/to/tmux-split-statusbar/tmux-split-statusbar.tmux'
+```
+
+Bindings use that checkout's path, including paths containing spaces. Toggle
+and hide commands do not reinstall bindings. Normal dynamic status text still
+refreshes using tmux's status interval. Do not put the entrypoint itself inside
+`status-left` or `status-right` as a replacement for the old function.
+
+These changes address redundant work; they do not establish the cause of a
+previous tmux crash or guarantee that verbose `tmux -v` logging is inexpensive.
+
+### Verification
+
+```sh
+bash -n tmux-split-statusbar.tmux scripts/helpers.sh
+```
+
+The local integration test (kept outside the commit) uses a temporary private socket, an empty tmux config,
+and a plugin copy under a path containing spaces. It checks layout ordering,
+zero option writes on repeated application/loading, toggles, hide/restore,
+explicit reload, and bindings. It never reloads the user's running server.
+Python is required only for tests.
 
 # Installation
 ## Installation with [Tmux Plugin Manager](https://github.com/tmux-plugins/tpm) (recommended)
